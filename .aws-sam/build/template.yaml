@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: MkDocs Static Website Hosted on S3 with Lambda@Edge
+Resources:
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: test-website
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: 404.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  MkDocsBuildFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.11
+      Policies:
+      - S3CrudPolicy:
+          BucketName:
+            Ref: WebsiteBucket
+      CodeUri: MkDocsBuildFunction
+      Timeout: 900
+      MemorySize: 1024
+      Environment:
+        Variables:
+          S3_BUCKET: my-local-mkdocs-bucket
+      Events:
+        S3Event:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: WebsiteBucket
+            Events: s3:ObjectCreated:*
+    Metadata:
+      SamResourceId: MkDocsBuildFunction
